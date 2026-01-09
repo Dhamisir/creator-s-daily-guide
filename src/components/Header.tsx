@@ -23,7 +23,7 @@ export function Header() {
       className="sticky top-0 z-40 w-full glass"
     >
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.href = '/categories'}>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -38,25 +38,36 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 border border-border">
-              <AvatarImage src={user?.user_metadata?.avatar_url} />
-              <AvatarFallback className="bg-secondary text-sm">
-                {getInitials(user?.email)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="hidden sm:block text-sm text-muted-foreground">
-              {user?.email}
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          {user ? (
+            <>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8 border border-border">
+                  <AvatarImage src={user.user_metadata?.avatar_url} />
+                  <AvatarFallback className="bg-secondary text-sm">
+                    {getInitials(user.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden sm:block text-sm text-muted-foreground">
+                  {user.email}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSignOut}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={() => window.location.href = '/login'}
+              className="px-6 rounded-full"
+            >
+              Login
+            </Button>
+          )}
         </div>
       </div>
     </motion.header>

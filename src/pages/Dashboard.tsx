@@ -8,8 +8,12 @@ import { CompletionCelebration } from '@/components/CompletionCelebration';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useTasks } from '@/hooks/useTasks';
 import { Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+import { useParams } from 'react-router-dom';
 
 export default function Dashboard() {
+  const { slug } = useParams();
   const {
     weeklyPlan,
     userProgress,
@@ -20,7 +24,7 @@ export default function Dashboard() {
     isTaskCompleted,
     allTasksCompleted,
     advanceToNextDay,
-  } = useTasks();
+  } = useTasks(slug);
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasShownCelebration, setHasShownCelebration] = useState(false);
@@ -51,9 +55,18 @@ export default function Dashboard() {
 
   if (!weeklyPlan || !currentDay || !userProgress) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <p className="text-muted-foreground">No tasks available</p>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex min-h-[80vh] items-center justify-center">
+          <div className="text-center space-y-4 max-w-md mx-auto p-6">
+            <h2 className="text-2xl font-bold font-display">No Plan Found</h2>
+            <p className="text-muted-foreground">
+              We couldn't find a plan for this category or you haven't started it yet.
+            </p>
+            <Button onClick={() => window.location.href = '/categories'}>
+              Browse Categories
+            </Button>
+          </div>
         </div>
       </div>
     );

@@ -14,10 +14,32 @@ export interface DayData {
   tasks: Task[];
 }
 
+export interface Platform {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  created_at: string;
+}
+
+export interface Category {
+  id: string;
+  platform_id: string;
+  platform?: Platform;
+  name: string;
+  slug: string;
+  description: string;
+  icon: string;
+  created_at: string;
+}
+
 export interface WeeklyPlan {
   id: string;
+  category_id: string;
+  category?: Category; // For joined queries
   week_number: number;
   theme: string;
+  objective: string;
   days_data: DayData[];
   created_at: string;
   is_active: boolean;

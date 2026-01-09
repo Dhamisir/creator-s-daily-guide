@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WeeklyPlan, UserProgress, TaskCompletion, DayData } from '@/types/tasks';
 import { useAuth } from './useAuth';
 
-export function useTasks() {
+export function useTasks(categorySlug?: string) {
   const { user } = useAuth();
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
@@ -12,10 +12,13 @@ export function useTasks() {
   const [currentDay, setCurrentDay] = useState<DayData | null>(null);
 
   const fetchWeeklyPlan = useCallback(async () => {
+    if (!categorySlug) return null;
+
     const { data, error } = await supabase
       .from('weekly_plans')
-      .select('*')
+      .select('*, category:categories!inner(*)')
       .eq('is_active', true)
+      .eq('category.slug', categorySlug)
       .maybeSingle();
 
     if (error) {
@@ -26,14 +29,15 @@ export function useTasks() {
     if (data) {
       // Parse days_data from JSONB
       const plan: WeeklyPlan = {
-        ...data,
-        days_data: data.days_data as unknown as DayData[],
-      };
+        ...(data as any),
+        days_data: (data as any).days_data as DayData[],
+      } as WeeklyPlan;
+
       setWeeklyPlan(plan);
       return plan;
     }
     return null;
-  }, []);
+  }, [categorySlug]);
 
   const fetchUserProgress = useCallback(async (planId: string) => {
     if (!user) return null;
@@ -145,18 +149,12 @@ export function useTasks() {
     if (!user || !weeklyPlan || !userProgress) return false;
 
     const nextDay = userProgress.current_day + 1;
-    
+
     if (nextDay > weeklyPlan.days_data.length) {
       return false; // Week complete
     }
 
-    const { error } = await supabase
-      .from('user_progress')
-      .update({
-        current_day: nextDay,
-        last_activity_at: new Date().toISOString(),
-      })
-      .eq('id', userProgress.id);
+    const { error } = await supabase.rpc('advance_day');
 
     if (error) {
       console.error('Error advancing day:', error);
@@ -178,23 +176,23 @@ export function useTasks() {
 
       setLoading(true);
       const plan = await fetchWeeklyPlan();
-      
+
       if (plan) {
         let progress = await fetchUserProgress(plan.id);
-        
+
         if (!progress) {
           progress = await createUserProgress(plan.id);
         }
 
         if (progress) {
           await fetchCompletedTasks(plan.id, progress.current_day);
-          
+
           // Set current day data
           const dayData = plan.days_data.find(d => d.day === progress!.current_day);
           setCurrentDay(dayData || null);
         }
       }
-      
+
       setLoading(false);
     };
 
@@ -213,7 +211,7 @@ export function useTasks() {
     return completedTasks.some(t => t.task_id === taskId);
   }, [completedTasks]);
 
-  const allTasksCompleted = currentDay 
+  const allTasksCompleted = currentDay
     ? currentDay.tasks.every(task => isTaskCompleted(task.id))
     : false;
 

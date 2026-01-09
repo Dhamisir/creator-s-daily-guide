@@ -1,94 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Loader2, Chrome } from 'lucide-react';
+import { Chrome, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { z } from 'zod';
-
-const authSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, signInWithEmail, signUpWithEmail, signInWithGoogle, loading } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const { user, signInWithGoogle, loading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/categories');
     }
   }, [user, navigate]);
 
-  const validateForm = () => {
-    try {
-      authSchema.parse({ email, password });
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldErrors: { email?: string; password?: string } = {};
-        error.errors.forEach((err) => {
-          if (err.path[0] === 'email') fieldErrors.email = err.message;
-          if (err.path[0] === 'password') fieldErrors.password = err.message;
-        });
-        setErrors(fieldErrors);
-      }
-      return false;
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
+  const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
-
     try {
-      if (isSignUp) {
-        const { error } = await signUpWithEmail(email, password);
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('This email is already registered. Try signing in instead.');
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success('Account created! Welcome aboard!');
-        }
-      } else {
-        const { error } = await signInWithEmail(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login')) {
-            toast.error('Invalid email or password. Please try again.');
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success('Welcome back!');
-        }
+      const { error } = await signInWithGoogle();
+      if (error) {
+        toast.error('Failed to sign in with Google. Please try again.');
+        console.error(error);
       }
     } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      toast.error('An unexpected error occurred.');
+      console.error(error);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    const { error } = await signInWithGoogle();
-    if (error) {
-      toast.error('Failed to sign in with Google. Please try again.');
     }
   };
 
@@ -136,100 +77,32 @@ export default function Auth() {
           <div className="glass rounded-2xl p-8 space-y-6">
             <div className="text-center">
               <h2 className="font-display text-xl font-semibold">
-                {isSignUp ? 'Create an account' : 'Welcome back'}
+                Welcome back
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                {isSignUp 
-                  ? 'Start your growth journey today' 
-                  : 'Continue your daily tasks'}
+                Sign in to continue your daily tasks
               </p>
             </div>
 
             {/* Google Sign In */}
             <Button
               type="button"
-              variant="outline"
               className="w-full gap-2 h-11"
+              size="lg"
               onClick={handleGoogleSignIn}
+              disabled={isSubmitting}
             >
-              <Chrome className="h-5 w-5" />
+              {isSubmitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Chrome className="h-5 w-5" />
+              )}
               Continue with Google
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            {/* Email form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-11"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-11"
-                  />
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-11 gradient-bg hover:opacity-90 transition-opacity"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : isSignUp ? (
-                  'Create Account'
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </form>
-
-            <div className="text-center text-sm">
-              <span className="text-muted-foreground">
-                {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-              </span>{' '}
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="font-medium text-primary hover:underline"
-              >
-                {isSignUp ? 'Sign in' : 'Sign up'}
-              </button>
-            </div>
+            <p className="text-xs text-center text-muted-foreground mt-4">
+              By continuing, you verify that you are ready to commit to the challenge.
+            </p>
           </div>
         </motion.div>
       </div>
