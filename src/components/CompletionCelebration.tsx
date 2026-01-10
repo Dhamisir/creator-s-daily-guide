@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion';
-import { PartyPopper, ArrowRight, Trophy } from 'lucide-react';
+import { PartyPopper, ArrowRight, Trophy, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CompletionCelebrationProps {
   onNextDay: () => void;
+  onClose: () => void;
   isLastDay: boolean;
 }
 
-export function CompletionCelebration({ onNextDay, isLastDay }: CompletionCelebrationProps) {
+export function CompletionCelebration({ onNextDay, onClose, isLastDay }: CompletionCelebrationProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -18,8 +19,14 @@ export function CompletionCelebration({ onNextDay, isLastDay }: CompletionCelebr
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="max-w-md mx-4 p-8 rounded-2xl glass text-center space-y-6"
+        className="relative max-w-md mx-4 p-8 rounded-2xl glass text-center space-y-6"
       >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-full hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -38,8 +45,8 @@ export function CompletionCelebration({ onNextDay, isLastDay }: CompletionCelebr
             {isLastDay ? "Week Complete!" : "Day Complete!"}
           </h2>
           <p className="text-muted-foreground">
-            {isLastDay 
-              ? "Amazing work! You've completed all tasks for this week. Your consistency is paying off!" 
+            {isLastDay
+              ? "Amazing work! You've completed all tasks for this week. Your consistency is paying off!"
               : "Great job! You've completed all tasks for today. Come back tomorrow for new challenges!"}
           </p>
         </div>

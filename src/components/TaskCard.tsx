@@ -3,15 +3,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Clock, ChevronDown, ChevronUp, CircleCheck, Circle } from 'lucide-react';
 import { Task } from '@/types/tasks';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TaskCardProps {
   task: Task;
   isCompleted: boolean;
   onToggle: () => void;
   index: number;
+  readOnly?: boolean;
+  isAuthenticated?: boolean;
+  onClickReadOnly?: () => void;
 }
 
-export function TaskCard({ task, isCompleted, onToggle, index }: TaskCardProps) {
+export function TaskCard({ task, isCompleted, onToggle, index, readOnly, isAuthenticated, onClickReadOnly }: TaskCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -21,8 +30,8 @@ export function TaskCard({ task, isCompleted, onToggle, index }: TaskCardProps) 
       transition={{ delay: index * 0.1, duration: 0.4 }}
       className={cn(
         "relative overflow-hidden rounded-xl border transition-all duration-300",
-        isCompleted 
-          ? "border-success/30 bg-success/5" 
+        isCompleted
+          ? "border-success/30 bg-success/5"
           : "border-border bg-card hover:border-primary/30"
       )}
     >
@@ -30,37 +39,49 @@ export function TaskCard({ task, isCompleted, onToggle, index }: TaskCardProps) 
       <div className="p-5">
         <div className="flex items-start gap-4">
           {/* Checkbox */}
-          <motion.button
-            onClick={onToggle}
-            className={cn(
-              "mt-0.5 flex-shrink-0 transition-colors",
-              isCompleted ? "text-success" : "text-muted-foreground hover:text-primary"
-            )}
-            whileTap={{ scale: 0.9 }}
-          >
-            <AnimatePresence mode="wait">
-              {isCompleted ? (
-                <motion.div
-                  key="checked"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                  className="animate-check-bounce"
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  onClick={readOnly ? onClickReadOnly : onToggle}
+                  className={cn(
+                    "mt-0.5 flex-shrink-0 transition-colors",
+                    isCompleted ? "text-success" : "text-muted-foreground hover:text-primary",
+                    readOnly && "cursor-default opacity-50"
+                  )}
+                  whileTap={readOnly && !onClickReadOnly ? {} : { scale: 0.9 }}
                 >
-                  <CircleCheck className="h-6 w-6" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="unchecked"
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                >
-                  <Circle className="h-6 w-6" />
-                </motion.div>
+                  <AnimatePresence mode="wait">
+                    {isCompleted ? (
+                      <motion.div
+                        key="checked"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="animate-check-bounce"
+                      >
+                        <CircleCheck className="h-6 w-6" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="unchecked"
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                      >
+                        <Circle className="h-6 w-6" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              </TooltipTrigger>
+              {readOnly && !isAuthenticated && (
+                <TooltipContent>
+                  <p>Please login to access todo flow</p>
+                </TooltipContent>
               )}
-            </AnimatePresence>
-          </motion.button>
+            </Tooltip>
+          </TooltipProvider>
 
           {/* Task info */}
           <div className="flex-1 min-w-0">
@@ -70,7 +91,7 @@ export function TaskCard({ task, isCompleted, onToggle, index }: TaskCardProps) 
             )}>
               {task.title}
             </h3>
-            
+
             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
               <span>{task.estimated_time_min} min</span>
@@ -103,7 +124,7 @@ export function TaskCard({ task, isCompleted, onToggle, index }: TaskCardProps) 
           >
             <div className="px-5 pb-5 pt-0 space-y-4 border-t border-border/50">
               <div className="pt-4" />
-              
+
               {/* Do section */}
               <div>
                 <h4 className="text-sm font-semibold text-success flex items-center gap-2 mb-2">

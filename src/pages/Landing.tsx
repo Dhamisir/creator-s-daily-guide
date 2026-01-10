@@ -33,7 +33,7 @@ export default function Landing() {
                             🚀 Level up your daily routine
                         </span>
                         <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight mb-8">
-                            Daily <span className="gradient-text">Creators</span>
+                            Creator <span className="gradient-text">Daily</span>
                         </h1>
                         <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
                             Master new skills with structured weekly plans.

@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useTasks } from '@/hooks/useTasks';
 import { Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 import { useParams } from 'react-router-dom';
 
@@ -24,10 +25,24 @@ export default function Dashboard() {
     isTaskCompleted,
     allTasksCompleted,
     advanceToNextDay,
+    isAuthenticated,
   } = useTasks(slug);
 
+  const [selectedDayNum, setSelectedDayNum] = useState<number | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasShownCelebration, setHasShownCelebration] = useState(false);
+
+  // Set initial selected day when data loads
+  useEffect(() => {
+    if (userProgress && !selectedDayNum) {
+      setSelectedDayNum(userProgress.current_day);
+    } else if (!isAuthenticated && weeklyPlan && !selectedDayNum) {
+      setSelectedDayNum(1);
+    }
+  }, [userProgress, weeklyPlan, isAuthenticated, selectedDayNum]);
+
+  const activeDayNum = userProgress?.current_day || 1;
+  const viewedDay = weeklyPlan?.days_data?.days?.find(d => d.day === (selectedDayNum || activeDayNum)) || currentDay;
 
   useEffect(() => {
     if (allTasksCompleted && !hasShownCelebration && currentDay) {
@@ -49,11 +64,25 @@ export default function Dashboard() {
     }
   };
 
+  const handleReadOnlyClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to access todo flow");
+    } else if (selectedDayNum && selectedDayNum > activeDayNum) {
+      if (allTasksCompleted) {
+        toast.info("Great job! You've finished today. Come back tomorrow for the next day!");
+      } else {
+        toast.info(`Complete Day ${activeDayNum} first to start this task`);
+      }
+    } else if (selectedDayNum && selectedDayNum < activeDayNum) {
+      toast.info("This day is already completed");
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (!weeklyPlan || !currentDay || !userProgress) {
+  if (!weeklyPlan || !viewedDay) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -61,7 +90,7 @@ export default function Dashboard() {
           <div className="text-center space-y-4 max-w-md mx-auto p-6">
             <h2 className="text-2xl font-bold font-display">No Plan Found</h2>
             <p className="text-muted-foreground">
-              We couldn't find a plan for this category or you haven't started it yet.
+              We couldn't find a plan for this category.
             </p>
             <Button onClick={() => window.location.href = '/categories'}>
               Browse Categories
@@ -72,8 +101,10 @@ export default function Dashboard() {
     );
   }
 
-  const totalTime = currentDay.tasks.reduce((acc, task) => acc + task.estimated_time_min, 0);
-  const isLastDay = userProgress.current_day >= weeklyPlan.days_data.length;
+  const tasks = viewedDay.tasks || [];
+  const totalTime = tasks.reduce((acc, task) => acc + (task.estimated_time_min || 0), 0);
+  const isLastDay = (userProgress?.current_day || 1) >= weeklyPlan.days_data.days.length;
+  const isViewingCurrentDay = isAuthenticated && (selectedDayNum === (userProgress?.current_day || 1));
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,7 +119,7 @@ export default function Dashboard() {
       <main className="container relative z-10 py-8 pb-20">
         <div className="max-w-2xl mx-auto space-y-8">
           {/* Day header */}
-          <DayHeader day={currentDay} theme={weeklyPlan.theme} />
+          <DayHeader day={viewedDay} theme={weeklyPlan.theme} />
 
           {/* Progress section */}
           <motion.div
@@ -98,10 +129,12 @@ export default function Dashboard() {
             className="glass rounded-2xl p-6"
           >
             <DayProgress
-              currentDay={userProgress.current_day}
-              totalDays={weeklyPlan.days_data.length}
-              completedTasks={completedTasks.length}
-              totalTasks={currentDay.tasks.length}
+              currentDay={userProgress?.current_day || 1}
+              totalDays={weeklyPlan.days_data.days.length}
+              completedTasks={completedTasks.filter(t => t.day_number === (selectedDayNum || activeDayNum)).length}
+              totalTasks={tasks.length}
+              onDaySelect={setSelectedDayNum}
+              selectedDay={selectedDayNum || activeDayNum}
             />
           </motion.div>
 
@@ -118,13 +151,16 @@ export default function Dashboard() {
 
           {/* Tasks list */}
           <div className="space-y-4">
-            {currentDay.tasks.map((task, index) => (
+            {tasks.map((task, index) => (
               <TaskCard
                 key={task.id}
                 task={task}
                 isCompleted={isTaskCompleted(task.id)}
                 onToggle={() => toggleTaskCompletion(task.id)}
                 index={index}
+                readOnly={!isViewingCurrentDay}
+                isAuthenticated={isAuthenticated}
+                onClickReadOnly={handleReadOnlyClick}
               />
             ))}
           </div>
@@ -136,6 +172,7 @@ export default function Dashboard() {
         {showCelebration && (
           <CompletionCelebration
             onNextDay={handleNextDay}
+            onClose={() => setShowCelebration(false)}
             isLastDay={isLastDay}
           />
         )}

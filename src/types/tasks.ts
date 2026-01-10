@@ -40,7 +40,11 @@ export interface WeeklyPlan {
   week_number: number;
   theme: string;
   objective: string;
-  days_data: DayData[];
+  days_data: {
+    days: DayData[];
+    week: number;
+    theme: string;
+  };
   created_at: string;
   is_active: boolean;
 }
